@@ -85,8 +85,11 @@ func (c *Client) ProxyStream(ctx *gin.Context, body []byte, method string, upstr
 }
 
 func (c *Client) getBaseURL(cfg *UpstreamConfig) string {
-	if cfg != nil && strings.TrimSpace(cfg.BaseURL) != "" {
-		return strings.TrimSuffix(cfg.BaseURL, "/")
+	if cfg != nil {
+		baseURL := strings.TrimSpace(cfg.BaseURL)
+		if baseURL != "" {
+			return strings.TrimSuffix(baseURL, "/")
+		}
 	}
 	return "https://api.openai.com/v1"
 }
