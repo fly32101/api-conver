@@ -110,8 +110,31 @@ func (c *Client) buildUpstreamURL(baseURL, path, rawQuery string) string {
 }
 
 func (c *Client) copyRequestHeaders(dst *http.Request, src *http.Request) {
+	hopByHop := map[string]struct{}{
+		"connection":          {},
+		"proxy-connection":    {},
+		"keep-alive":          {},
+		"proxy-authenticate":  {},
+		"proxy-authorization": {},
+		"te":                  {},
+		"trailer":             {},
+		"transfer-encoding":   {},
+		"upgrade":             {},
+		"http2-settings":      {},
+	}
+
+	for _, token := range strings.Split(src.Header.Get("Connection"), ",") {
+		if token = strings.TrimSpace(strings.ToLower(token)); token != "" {
+			hopByHop[token] = struct{}{}
+		}
+	}
+
 	for k, v := range src.Header {
-		if strings.EqualFold(k, "Host") || strings.EqualFold(k, "Content-Length") || strings.EqualFold(k, "Accept-Encoding") {
+		keyLower := strings.ToLower(k)
+		if _, skip := hopByHop[keyLower]; skip {
+			continue
+		}
+		if keyLower == "host" || keyLower == "content-length" || keyLower == "accept-encoding" {
 			continue
 		}
 		for _, val := range v {
