@@ -20,6 +20,15 @@ func NewChatHandler(uc *usecase.ProxyUseCase) *ChatHandler {
 	return &ChatHandler{uc: uc}
 }
 
+// ResponsesHandler handles OpenAI /v1/responses requests
+type ResponsesHandler struct {
+	uc *usecase.ProxyUseCase
+}
+
+func NewResponsesHandler(uc *usecase.ProxyUseCase) *ResponsesHandler {
+	return &ResponsesHandler{uc: uc}
+}
+
 // Handle handles POST /v1/chat/completions
 func (h *ChatHandler) Handle(c *gin.Context) {
 	alias := getAliasFromPath(c)
@@ -44,6 +53,32 @@ func (h *ChatHandler) Handle(c *gin.Context) {
 func (h *ChatHandler) HandleAlias(c *gin.Context) {
 	alias := c.Param("alias")
 	h.uc.HandleOpenAI(c, alias)
+}
+
+// Handle handles POST /v1/responses
+func (h *ResponsesHandler) Handle(c *gin.Context) {
+	alias := getAliasFromPath(c)
+	if alias == "" || alias == "v1" {
+		h.uc.HandleResponses(c, "")
+		return
+	}
+	if !config.IsValidAlias(alias) {
+		if alias == "healthz" {
+			c.Status(http.StatusNotFound)
+			return
+		}
+		log.Printf("unknown alias: %s", alias)
+		c.Status(http.StatusNotFound)
+		c.Data(http.StatusNotFound, "text/plain", []byte("unknown alias: "+alias))
+		return
+	}
+	h.uc.HandleResponses(c, alias)
+}
+
+// HandleAlias handles POST /:alias/v1/responses
+func (h *ResponsesHandler) HandleAlias(c *gin.Context) {
+	alias := c.Param("alias")
+	h.uc.HandleResponses(c, alias)
 }
 
 // MessagesHandler handles Anthropic /v1/messages requests

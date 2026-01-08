@@ -58,6 +58,73 @@ func (u *ProxyUseCase) HandleOpenAI(c *gin.Context, alias string) {
 	c.Data(http.StatusOK, "application/json", respBody)
 }
 
+// HandleResponses handles OpenAI /v1/responses request
+func (u *ProxyUseCase) HandleResponses(c *gin.Context, alias string) {
+	var payload map[string]interface{}
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(400, gin.H{"error": "invalid json"})
+		return
+	}
+
+	chatReq, stream, err := u.buildChatRequestFromResponses(payload, alias)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	out, _ := json.Marshal(chatReq)
+
+	aliasCfg := getUpstreamConfig(alias)
+	if stream {
+		resp, err := u.client.ProxyStream(c, out, "POST", "/v1/chat/completions", aliasCfg)
+		if err != nil {
+			c.JSON(502, gin.H{"error": err.Error()})
+			return
+		}
+
+		if resp.StatusCode < 200 || resp.StatusCode > 299 {
+			copyHeaders(c, resp.Header)
+			c.Status(resp.StatusCode)
+			io.Copy(c.Writer, resp.Body)
+			return
+		}
+
+		copyHeaders(c, resp.Header)
+		c.Header("Content-Type", "text/event-stream; charset=utf-8")
+		c.Header("Cache-Control", "no-cache")
+		c.Header("Connection", "keep-alive")
+		c.Header("X-Accel-Buffering", "no")
+		c.Status(http.StatusOK)
+		reqModel, _ := chatReq["model"].(string)
+		if err := u.streamOpenAIToResponses(c, resp, reqModel); err != nil {
+			c.JSON(502, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	respBody, statusCode, headers, err := u.client.ProxyRequest(c, out, "POST", "/v1/chat/completions", aliasCfg)
+	if err != nil {
+		c.JSON(502, gin.H{"error": err.Error()})
+		return
+	}
+
+	if statusCode < 200 || statusCode > 299 {
+		copyHeaders(c, headers)
+		c.Status(statusCode)
+		c.Data(http.StatusOK, "application/json", respBody)
+		return
+	}
+
+	var openAIResp model.OpenAIResponse
+	if err := json.Unmarshal(respBody, &openAIResp); err != nil {
+		c.JSON(502, gin.H{"error": "invalid upstream response"})
+		return
+	}
+	reqModel, _ := chatReq["model"].(string)
+	response := u.convertOpenAIResponseToResponses(openAIResp, reqModel)
+	c.JSON(200, response)
+}
+
 // HandleAnthropic handles Anthropic /v1/messages request
 func (u *ProxyUseCase) HandleAnthropic(c *gin.Context, alias string) {
 	var req model.AnthropicRequest

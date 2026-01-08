@@ -6,8 +6,10 @@
 
 - `GET /healthz` - 健康检查
 - `POST /v1/chat/completions` - 代理到全局配置的上游
+- `POST /v1/responses` - 代理到全局配置的上游
 - `POST /v1/messages` - Anthropic 请求转换后代理到全局配置
 - `POST /{alias}/v1/chat/completions` - 代理到指定别名的上游
+- `POST /{alias}/v1/responses` - 代理到指定别名的上游
 - `POST /{alias}/v1/messages` - Anthropic 请求转换后代理到指定别名
 - 其他 `/v1/*` 请求原样代理到上游
 
@@ -62,6 +64,12 @@ curl http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $OPENAI_API_KEY" \
   -d '{"messages": [{"role": "user", "content": "hi"}]}'
+
+# /v1/responses
+curl http://localhost:8080/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -d '{"model":"gpt-4.1","input":"Tell me a three sentence bedtime story about a unicorn."}'
 
 # 使用别名路由到指定上游
 curl http://localhost:8080/openai/v1/chat/completions \

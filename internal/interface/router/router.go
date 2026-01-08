@@ -18,6 +18,7 @@ func New() *gin.Engine {
 	// Create handlers
 	proxyUC := usecase.NewProxyUseCase()
 	chatHandler := handler.NewChatHandler(proxyUC)
+	responsesHandler := handler.NewResponsesHandler(proxyUC)
 	messagesHandler := handler.NewMessagesHandler(proxyUC)
 	proxyHandler := handler.NewProxyHandler(proxyUC)
 	healthHandler := handler.NewHealthHandler()
@@ -29,6 +30,7 @@ func New() *gin.Engine {
 	v1 := engine.Group("/v1")
 	{
 		v1.POST("/chat/completions", chatHandler.Handle)
+		v1.POST("/responses", responsesHandler.Handle)
 		v1.POST("/messages", messagesHandler.Handle)
 		v1.POST("", proxyHandler.Handle)
 		v1.POST("/", proxyHandler.Handle)
@@ -44,6 +46,7 @@ func New() *gin.Engine {
 		v1Alias := alias.Group("/v1")
 		{
 			v1Alias.POST("/chat/completions", chatHandler.HandleAlias)
+			v1Alias.POST("/responses", responsesHandler.HandleAlias)
 			v1Alias.POST("/messages", messagesHandler.HandleAlias)
 			v1Alias.POST("", proxyHandler.HandleAlias)
 			v1Alias.POST("/", proxyHandler.HandleAlias)
