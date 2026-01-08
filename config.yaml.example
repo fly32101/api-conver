@@ -1,0 +1,43 @@
+# API Convergence Configuration
+# Usage: rename to config.yaml
+
+# Port for the server (optional, defaults to 8080)
+defaults:
+  port: "8080"
+
+# Upstream API aliases
+aliases:
+  # Example: OpenAI
+  openai:
+    base_url: "https://api.openai.com/v1"
+    api_key: "sk-xxx"
+    auth_header: "Authorization"
+    auth_prefix: "Bearer"
+    default_model: "gpt-4o"
+
+  # Example: Anthropic (using OpenAI compatibility endpoint)
+  anthropic-ai:
+    base_url: "https://api.anthropic.com/v1"
+    api_key: "sk-ant-xxx"
+    auth_header: "x-api-key"
+    auth_prefix: ""
+    default_model: "claude-3-5-sonnet-20241022"
+
+  # Example: Azure OpenAI
+  azure:
+    base_url: "https://my-resource.openai.azure.com/openai"
+    api_key: "xxx"
+    auth_header: "api-key"
+    auth_prefix: ""
+    default_model: "gpt-4"
+
+  # Example: Custom internal service
+  internal:
+    base_url: "http://localhost:8000/v1"
+    api_key: ""
+    auth_header: "Authorization"
+    auth_prefix: "Bearer"
+    default_model: "tstars2.0"
+
+# Note: Legacy environment variables (OPENAI_*, IFLOW_*) still work
+# as fallback when alias is not specified
