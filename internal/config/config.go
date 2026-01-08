@@ -20,7 +20,8 @@ type AliasConfig struct {
 type Config struct {
 	Aliases  map[string]AliasConfig `yaml:"aliases"`
 	Defaults struct {
-		Port string `yaml:"port"`
+		Port  string `yaml:"port"`
+		Alias string `yaml:"alias"`
 	} `yaml:"defaults"`
 }
 

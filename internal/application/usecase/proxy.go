@@ -46,7 +46,8 @@ func (u *ProxyUseCase) HandleOpenAI(c *gin.Context, alias string) {
 	out, _ := json.Marshal(payload)
 
 	aliasCfg := getUpstreamConfig(alias)
-	respBody, statusCode, headers, err := u.client.ProxyRequest(c, out, "POST", c.Request.URL.Path, aliasCfg)
+	upstreamPath := stripAliasPrefix(c.Request.URL.Path, alias)
+	respBody, statusCode, headers, err := u.client.ProxyRequest(c, out, "POST", upstreamPath, aliasCfg)
 	if err != nil {
 		c.JSON(502, gin.H{"error": err.Error()})
 		return
@@ -222,7 +223,8 @@ func (u *ProxyUseCase) HandleProxy(c *gin.Context, alias string) {
 	}
 
 	aliasCfg := getUpstreamConfig(alias)
-	respBody, statusCode, headers, err := u.client.ProxyRequest(c, body, c.Request.Method, c.Request.URL.Path, aliasCfg)
+	upstreamPath := stripAliasPrefix(c.Request.URL.Path, alias)
+	respBody, statusCode, headers, err := u.client.ProxyRequest(c, body, c.Request.Method, upstreamPath, aliasCfg)
 	if err != nil {
 		c.JSON(502, gin.H{"error": err.Error()})
 		return
@@ -236,7 +238,7 @@ func (u *ProxyUseCase) HandleProxy(c *gin.Context, alias string) {
 // Helpers
 
 func getDefaultModel(alias string) string {
-	cfg := config.GetAliasConfig(alias)
+	cfg := config.GetAliasConfig(resolveAlias(alias))
 	if cfg != nil && cfg.DefaultModel != "" {
 		return cfg.DefaultModel
 	}
@@ -244,7 +246,7 @@ func getDefaultModel(alias string) string {
 }
 
 func getUpstreamConfig(alias string) *proxy.UpstreamConfig {
-	if cfg := config.GetAliasConfig(alias); cfg != nil {
+	if cfg := config.GetAliasConfig(resolveAlias(alias)); cfg != nil {
 		return &proxy.UpstreamConfig{
 			BaseURL:    cfg.BaseURL,
 			APIKey:     cfg.APIKey,
@@ -264,4 +266,39 @@ func copyHeaders(c *gin.Context, headers http.Header) {
 			c.Header(k, val)
 		}
 	}
+}
+
+func stripAliasPrefix(path, alias string) string {
+	if alias == "" {
+		return path
+	}
+	prefix := "/" + alias
+	if strings.HasPrefix(path, prefix+"/") {
+		return path[len(prefix):]
+	}
+	if path == prefix {
+		return "/"
+	}
+	return path
+}
+
+func resolveAlias(alias string) string {
+	if alias != "" {
+		return alias
+	}
+	cfg := config.Get()
+	if cfg == nil {
+		return ""
+	}
+	if cfg.Defaults.Alias != "" {
+		if _, ok := cfg.Aliases[cfg.Defaults.Alias]; ok {
+			return cfg.Defaults.Alias
+		}
+	}
+	if len(cfg.Aliases) == 1 {
+		for name := range cfg.Aliases {
+			return name
+		}
+	}
+	return ""
 }

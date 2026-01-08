@@ -115,6 +115,25 @@ func (h *ProxyHandler) HandleAlias(c *gin.Context) {
 	h.uc.HandleProxy(c, alias)
 }
 
+// HandleAliasFallback handles unmatched /:alias/* requests.
+func (h *ProxyHandler) HandleAliasFallback(c *gin.Context) {
+	alias := getAliasFromPath(c)
+	if alias == "" || alias == "v1" {
+		c.Status(http.StatusNotFound)
+		return
+	}
+	if !config.IsValidAlias(alias) {
+		if alias == "healthz" {
+			c.Status(http.StatusNotFound)
+			return
+		}
+		c.Status(http.StatusNotFound)
+		c.Data(http.StatusNotFound, "text/plain", []byte("unknown alias: "+alias))
+		return
+	}
+	h.uc.HandleProxy(c, alias)
+}
+
 // HealthHandler handles health check requests
 type HealthHandler struct{}
 

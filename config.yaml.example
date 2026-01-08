@@ -4,6 +4,8 @@
 # Port for the server (optional, defaults to 8080)
 defaults:
   port: "8080"
+  # Default alias used when requests don't specify one (optional)
+  # alias: "openai"
 
 # Upstream API aliases
 aliases:

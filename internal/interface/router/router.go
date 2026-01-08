@@ -50,5 +50,8 @@ func New() *gin.Engine {
 		}
 	}
 
+	// Fallback proxy for non-/v1 endpoints under an alias
+	engine.NoRoute(proxyHandler.HandleAliasFallback)
+
 	return engine
 }
