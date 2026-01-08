@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+*.log
+*.tmp
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+bin/
+dist/
+_ref/
